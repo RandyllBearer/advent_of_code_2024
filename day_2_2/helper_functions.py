@@ -1,5 +1,7 @@
 # Helper functions for AOC Day 1-2
 
+DIFF_THRESHOLD = 3  # The max a number can grow/shrink by each interval
+
 # parse_reports opens the source_input file containing the data for the reports
 # and returns a 2d "list of lists"
 #
@@ -31,6 +33,40 @@ def determine_mode(value_1, value_2):
         return "DESC"
     elif value_2 == value_1:
         return "EQUAL"
+    
+# check_report_safety accepts a report, a last_value, and a last_mode
+# and returns whether the report is safe or not
+#
+#
+def check_report_safety(report):
+    is_safe = True
+    last_value = None
+    last_mode = None
+
+    for next_value in report:
+
+        # Get past our first case, we can't compare it to itself
+        if (last_value is None):
+            last_value = next_value
+            continue
+
+        # Check if it is continuously growing or shrinking
+        next_mode = determine_mode(last_value, next_value)
+        if (last_mode is None):
+            last_mode = next_mode
+        elif (next_mode is not last_mode):
+            is_safe = False
+            return is_safe
+
+        # Check if it is growing/shrinking within threshold limit
+        if ((abs(next_value - last_value) > DIFF_THRESHOLD) or (abs(next_value - last_value) == 0)):
+            is_safe = False
+            return is_safe
+
+        last_mode = next_mode
+        last_value = next_value
+
+    return is_safe
 
 # calculate_safe_reports accepts the list of reports and determines how many
 # in total are deemed "SAFE". SAFE/UNSAFE ruled as follows:
@@ -47,37 +83,21 @@ def determine_mode(value_1, value_2):
 # reports: The 2d "lists of lists" containing all individual report data
 # returns: The total number of "SAFE" reports
 def calculate_safe_reports(reports):
-    threshold = 3
     total_safe_reports = 0
 
     # Iterate over reports
     for report in reports:
-        last_value = None
-        last_mode = None
-        is_safe = True
+        is_safe = check_report_safety(report)
 
-        for next_value in report:
-
-            # Get past our first case, we can't compare it to itself
-            if (last_value is None):
-                last_value = next_value
-                continue
-
-            # Check if it is continuously growing or shrinking
-            next_mode = determine_mode(last_value, next_value)
-            if (last_mode is None):
-                last_mode = next_mode
-            elif (next_mode is not last_mode):
-                is_safe = False
-                break
-
-            # Check if it is growing/shrinking within threshold limit
-            if ((abs(next_value - last_value) > threshold) or (abs(next_value - last_value) == 0)):
-                is_safe = False
-                break
-
-            last_mode = next_mode
-            last_value = next_value
+        # Test for Problem Dampener (Accept 1 faulty value)
+        if(is_safe is False):
+            i = 0
+            while(i<len(report)):
+                new_report = report[:i] + report[i+1 :]
+                is_safe = check_report_safety(new_report)
+                if(is_safe is True):
+                    break
+                i = i + 1
         
         # If it passed all checks, add to the total number of safe reports
         if (is_safe is True):
